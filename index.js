@@ -65,19 +65,35 @@ const options = {
 
     const keys = Object.keys(rows)
 
-    const dataList = []
+    let dataList = []
 
     for(const key of keys) {
       if(key !== '0') {
         const rowSelector = rows[key]
         const cellSelector = rowSelector.querySelector('tr > td > span > a')
         const fileLink = cellSelector.getAttribute('href')
-        const fileTitle = cellSelector.getAttribute('title')
 
         const result = await getFileData(fileLink)
-        console.log(result)
+        let findElement = false
+
+        dataList.map(data => {
+          if(data.extension === result.extension){
+            data.lines = data.lines + result.lines
+            data.bytes = data.bytes + result.bytes
+            findElement = true
+            return data
+          }
+        })
+
+        if(!findElement){
+          dataList.push(result)
+        }
+
+
     }
   }
+
+  console.log(dataList)
 
 }
 
@@ -97,14 +113,14 @@ async function getFileData(path) {
     time: true,
   };
 
-  console.log(url)
-
   const body = await rp(options);
-
 
   const jsdomOpts = Object.assign({}, DEFAULT_REQUEST_OPTIONS, { url: url });
   const dom = new JSDOM(body, jsdomOpts);
   const divRepository = dom.window.document.querySelector('div.text-mono')
+  const fileName = dom.window.document.querySelector('strong.final-path')
+  const names = fileName.textContent.split('.')
+  const extension = names[1]
   const textDiv = divRepository.textContent
   const text = JSON.stringify(textDiv).replace(/[^\d.-]/g, ' ')
   const dataList = text.split(' ')
@@ -114,7 +130,7 @@ async function getFileData(path) {
       a.push(data)
     }
   })
-  return { lines : a[0], bytes: a[2]}
+  return { extension: extension, lines : parseInt(a[0]), bytes: parseFloat(a[2])}
   
 }
 
